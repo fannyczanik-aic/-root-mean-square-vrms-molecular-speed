@@ -1,0 +1,1203 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>3.2.3.2 Root-Mean-Square (RMS) Molecular Speed & Maxwell-Boltzmann Distribution</title>
+    <!-- Load Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Google Fonts: Inter & JetBrains Mono -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600;700&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                        mono: ['JetBrains Mono', 'monospace'],
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        /* Custom range slider styles */
+        input[type="range"] {
+            -webkit-appearance: none;
+            appearance: none;
+            background: transparent;
+            cursor: pointer;
+        }
+        input[type="range"]::-webkit-slider-runnable-track {
+            height: 6px;
+            border-radius: 999px;
+            background: #334155;
+        }
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            margin-top: -6px;
+            background-color: #38bdf8;
+            height: 18px;
+            width: 18px;
+            border-radius: 50%;
+            border: 2px solid #0f172a;
+            box-shadow: 0 0 8px rgba(56, 189, 248, 0.6);
+            transition: transform 0.1s ease;
+        }
+        input[type="range"]::-webkit-slider-thumb:hover {
+            transform: scale(1.15);
+        }
+        .slider-secondary::-webkit-slider-thumb {
+            background-color: #f472b6 !important;
+            box-shadow: 0 0 8px rgba(244, 114, 182, 0.6) !important;
+        }
+        canvas {
+            display: block;
+            width: 100%;
+            height: 100%;
+        }
+    </style>
+</head>
+<body class="bg-slate-950 text-slate-100 min-h-screen flex flex-col antialiased selection:bg-sky-500/30 selection:text-sky-200">
+
+    <!-- Header -->
+    <header class="border-b border-slate-800 bg-slate-900/85 backdrop-blur-md sticky top-0 z-20">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 py-4 flex flex-col lg:flex-row lg:items-center lg:justify-between gap-3">
+            <div>
+                <div class="flex flex-wrap items-center gap-2.5">
+                    <span class="px-2.5 py-0.5 text-xs font-semibold tracking-wider uppercase rounded-full bg-sky-500/15 text-sky-400 border border-sky-500/30">
+                        Section 3.2.3.2
+                    </span>
+                    <h1 class="text-lg sm:text-xl font-bold text-white tracking-tight">
+                        Root-Mean-Square (<span class="font-mono text-sky-400">v<sub>rms</sub></span>) Molecular Speed
+                    </h1>
+                </div>
+                <p class="text-xs sm:text-sm text-slate-400 mt-1">
+                    Interactive Kinetic Molecular Lab: Explore the Maxwell–Boltzmann speed distribution across temperature (<span class="font-mono text-slate-300">T</span>) and molar mass (<span class="font-mono text-slate-300">M</span>).
+                </p>
+            </div>
+            
+            <!-- Quick Experiment Preset Buttons -->
+            <div class="flex flex-wrap items-center gap-2">
+                <button id="btn-trend-4t" class="px-3 py-2 text-xs font-medium rounded-xl bg-amber-500/15 hover:bg-amber-500/25 text-amber-300 border border-amber-500/30 transition flex items-center gap-1.5 shadow-sm" title="Quadruples absolute temperature (300 K → 1200 K) to demonstrate that v_rms doubles">
+                    <span>🔥</span> 4× Temperature (T → 4T)
+                </button>
+                <button id="btn-trend-mass" class="px-3 py-2 text-xs font-medium rounded-xl bg-pink-500/15 hover:bg-pink-500/25 text-pink-300 border border-pink-500/30 transition flex items-center gap-1.5 shadow-sm" title="Overlays Hydrogen (2.02 g/mol) and Oxygen (32.00 g/mol) at 300 K to illustrate inverse square-root mass dependence">
+                    <span>⚖️</span> Compare H₂ vs. O₂ (300 K)
+                </button>
+                <button id="btn-reset" class="px-3 py-2 text-xs font-medium rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 transition flex items-center gap-1.5 shadow-sm" title="Reset simulation to default Nitrogen at 300 K">
+                    <span>↺</span> Reset
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 py-6 space-y-6">
+
+        <!-- Experimental Insight Banner -->
+        <div id="insight-banner" class="hidden bg-slate-900 border border-sky-500/40 rounded-2xl p-4 flex items-start justify-between gap-4 shadow-lg shadow-sky-950/20">
+            <div class="flex items-start gap-3">
+                <div class="w-8 h-8 rounded-xl bg-sky-500/20 text-sky-400 flex items-center justify-center shrink-0 mt-0.5 font-bold">
+                    i
+                </div>
+                <div>
+                    <h3 id="insight-title" class="text-sm font-semibold text-white">Experimental Observation</h3>
+                    <p id="insight-text" class="text-xs sm:text-sm text-slate-300 mt-0.5 leading-relaxed"></p>
+                </div>
+            </div>
+            <button id="close-insight" class="text-slate-400 hover:text-white p-1 rounded-lg transition text-sm" aria-label="Close observation">✕</button>
+        </div>
+
+        <!-- Control Panel & Live Formula Card -->
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+            
+            <!-- Left Controls (7 columns) -->
+            <div class="lg:col-span-7 bg-slate-900/90 border border-slate-800 rounded-2xl p-5 space-y-5 shadow-xl">
+                <div class="flex flex-wrap items-center justify-between gap-2 border-b border-slate-800 pb-3">
+                    <h2 class="text-sm font-semibold uppercase tracking-wider text-slate-300 flex items-center gap-2">
+                        <span class="w-2 h-2 rounded-full bg-sky-400"></span>
+                        Interactive Parameters
+                    </h2>
+                    <!-- Comparison Mode Toggle -->
+                    <label class="inline-flex items-center gap-2.5 cursor-pointer select-none">
+                        <input type="checkbox" id="toggle-compare" class="sr-only peer">
+                        <div class="w-10 h-5 bg-slate-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-pink-500 relative"></div>
+                        <span class="text-xs font-medium text-slate-300 peer-checked:text-pink-300 transition">
+                            Overlay 2nd Gas Comparison
+                        </span>
+                    </label>
+                </div>
+
+                <!-- Temperature Control -->
+                <div class="space-y-2">
+                    <div class="flex flex-wrap items-center justify-between gap-2">
+                        <label for="slider-temp" class="text-sm font-medium text-slate-200">
+                            Absolute Temperature (<span class="font-mono text-amber-400">T</span>):
+                        </label>
+                        <div class="flex items-center gap-2">
+                            <span id="display-temp" class="font-mono text-base font-bold text-amber-400 bg-amber-500/10 border border-amber-500/20 px-2.5 py-0.5 rounded-lg">
+                                300 K
+                            </span>
+                            <span id="display-temp-c" class="font-mono text-xs text-slate-400">
+                                (26.9 °C)
+                            </span>
+                        </div>
+                    </div>
+                    <input type="range" id="slider-temp" min="50" max="2000" step="10" value="300" class="w-full">
+                    <div class="flex flex-wrap items-center justify-between gap-2 pt-1">
+                        <span class="text-[11px] text-slate-500 font-mono">50 K</span>
+                        <div class="flex flex-wrap gap-1.5">
+                            <button class="temp-preset px-2.5 py-1 text-[11px] font-mono rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 transition" data-temp="100">100 K</button>
+                            <button class="temp-preset px-2.5 py-1 text-[11px] font-mono rounded-lg bg-slate-800 hover:bg-slate-700 text-amber-300 border border-amber-500/30 transition" data-temp="300">1× T (300 K)</button>
+                            <button class="temp-preset px-2.5 py-1 text-[11px] font-mono rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 transition" data-temp="600">600 K</button>
+                            <button class="temp-preset px-2.5 py-1 text-[11px] font-mono rounded-lg bg-slate-800 hover:bg-slate-700 text-amber-300 border border-amber-500/30 transition" data-temp="1200">4× T (1200 K)</button>
+                        </div>
+                        <span class="text-[11px] text-slate-500 font-mono">2000 K</span>
+                    </div>
+                </div>
+
+                <!-- Primary Gas Molar Mass Control -->
+                <div class="space-y-2 pt-2 border-t border-slate-800/80">
+                    <div class="flex flex-wrap items-center justify-between gap-2">
+                        <label for="slider-mass1" class="text-sm font-medium text-sky-300 flex items-center gap-1.5">
+                            <span class="w-2.5 h-2.5 rounded-full bg-sky-400 inline-block"></span>
+                            Primary Gas Molar Mass (<span class="font-mono">M₁</span>):
+                        </label>
+                        <div class="flex items-center gap-2">
+                            <span id="display-gas1-name" class="text-xs font-semibold px-2 py-0.5 rounded bg-sky-500/15 text-sky-300 border border-sky-500/30">
+                                Nitrogen (N₂)
+                            </span>
+                            <span id="display-mass1" class="font-mono text-base font-bold text-sky-400">
+                                28.01 g/mol
+                            </span>
+                        </div>
+                    </div>
+                    <input type="range" id="slider-mass1" min="2" max="150" step="0.01" value="28.01" class="w-full">
+                    <div class="flex flex-wrap gap-1.5 pt-1">
+                        <button class="gas1-preset px-2.5 py-1 text-xs rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 transition" data-mass="2.02" data-name="Hydrogen (H₂)">H₂ (2.02)</button>
+                        <button class="gas1-preset px-2.5 py-1 text-xs rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 transition" data-mass="4.00" data-name="Helium (He)">He (4.00)</button>
+                        <button class="gas1-preset px-2.5 py-1 text-xs rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 transition" data-mass="28.01" data-name="Nitrogen (N₂)">N₂ (28.01)</button>
+                        <button class="gas1-preset px-2.5 py-1 text-xs rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 transition" data-mass="32.00" data-name="Oxygen (O₂)">O₂ (32.00)</button>
+                        <button class="gas1-preset px-2.5 py-1 text-xs rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 transition" data-mass="44.01" data-name="Carbon Dioxide (CO₂)">CO₂ (44.01)</button>
+                        <button class="gas1-preset px-2.5 py-1 text-xs rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 transition" data-mass="131.29" data-name="Xenon (Xe)">Xe (131.29)</button>
+                    </div>
+                </div>
+
+                <!-- Secondary Gas Control (Hidden by default) -->
+                <div id="compare-controls" class="hidden space-y-2 pt-3 border-t border-pink-500/20 bg-pink-950/10 p-3 rounded-xl">
+                    <div class="flex flex-wrap items-center justify-between gap-2">
+                        <label for="slider-mass2" class="text-sm font-medium text-pink-300 flex items-center gap-1.5">
+                            <span class="w-2.5 h-2.5 rounded-full bg-pink-400 inline-block"></span>
+                            Comparison Gas (<span class="font-mono">M₂</span>):
+                        </label>
+                        <div class="flex items-center gap-2">
+                            <span id="display-gas2-name" class="text-xs font-semibold px-2 py-0.5 rounded bg-pink-500/15 text-pink-300 border border-pink-500/30">
+                                Hydrogen (H₂)
+                            </span>
+                            <span id="display-mass2" class="font-mono text-base font-bold text-pink-400">
+                                2.02 g/mol
+                            </span>
+                        </div>
+                    </div>
+                    <input type="range" id="slider-mass2" min="2" max="150" step="0.01" value="2.02" class="w-full slider-secondary">
+                    <div class="flex flex-wrap gap-1.5 pt-1">
+                        <button class="gas2-preset px-2.5 py-1 text-xs rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 transition" data-mass="2.02" data-name="Hydrogen (H₂)">H₂ (2.02)</button>
+                        <button class="gas2-preset px-2.5 py-1 text-xs rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 transition" data-mass="4.00" data-name="Helium (He)">He (4.00)</button>
+                        <button class="gas2-preset px-2.5 py-1 text-xs rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 transition" data-mass="28.01" data-name="Nitrogen (N₂)">N₂ (28.01)</button>
+                        <button class="gas2-preset px-2.5 py-1 text-xs rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 transition" data-mass="32.00" data-name="Oxygen (O₂)">O₂ (32.00)</button>
+                        <button class="gas2-preset px-2.5 py-1 text-xs rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 transition" data-mass="131.29" data-name="Xenon (Xe)">Xe (131.29)</button>
+                    </div>
+                </div>
+
+                <!-- Display Options Checkboxes -->
+                <div class="pt-3 border-t border-slate-800/80 flex flex-wrap items-center gap-x-5 gap-y-2 text-xs text-slate-300">
+                    <span class="text-slate-400 font-medium">Plot & Chamber Overlays:</span>
+                    <label class="inline-flex items-center gap-1.5 cursor-pointer select-none">
+                        <input type="checkbox" id="chk-vp" checked class="rounded bg-slate-800 border-slate-600 text-indigo-500 focus:ring-0">
+                        <span class="text-indigo-300 font-mono">v<sub>p</sub></span>
+                    </label>
+                    <label class="inline-flex items-center gap-1.5 cursor-pointer select-none">
+                        <input type="checkbox" id="chk-vavg" checked class="rounded bg-slate-800 border-slate-600 text-teal-500 focus:ring-0">
+                        <span class="text-teal-300 font-mono">v<sub>avg</sub></span>
+                    </label>
+                    <label class="inline-flex items-center gap-1.5 cursor-pointer select-none">
+                        <input type="checkbox" id="chk-vrms" checked class="rounded bg-slate-800 border-slate-600 text-emerald-500 focus:ring-0">
+                        <span class="text-emerald-300 font-mono font-semibold">v<sub>rms</sub></span>
+                    </label>
+                    <label class="inline-flex items-center gap-1.5 cursor-pointer select-none ml-auto">
+                        <input type="checkbox" id="chk-colorcode" checked class="rounded bg-slate-800 border-slate-600 text-sky-500 focus:ring-0">
+                        <span>Speed color-coding</span>
+                    </label>
+                </div>
+            </div>
+
+            <!-- Right Live Formula & Calculation Card (5 columns) -->
+            <div class="lg:col-span-5 bg-slate-900/90 border border-slate-800 rounded-2xl p-5 flex flex-col justify-between shadow-xl">
+                <div>
+                    <div class="flex items-center justify-between border-b border-slate-800 pb-3">
+                        <h2 class="text-sm font-semibold uppercase tracking-wider text-slate-300">
+                            Live Formula & Calculation
+                        </h2>
+                        <span class="text-xs font-mono text-slate-400">R = 8.314 J/(mol·K)</span>
+                    </div>
+
+                    <!-- Textbook Formula Block -->
+                    <div class="my-4 p-3.5 rounded-xl bg-slate-950 border border-slate-800 text-center">
+                        <div class="text-xs text-slate-400 mb-1">Root-Mean-Square Speed Equation:</div>
+                        <div class="font-mono text-base sm:text-lg font-bold text-white tracking-wide">
+                            v<sub>rms</sub> = <span class="text-sky-400">√(3 k<sub>B</sub> T / m)</span> = <span class="text-emerald-400">√(3 R T / M)</span>
+                        </div>
+                    </div>
+
+                    <!-- Live Substitution (Primary Gas) -->
+                    <div class="space-y-2 bg-sky-950/20 border border-sky-500/25 rounded-xl p-3.5">
+                        <div class="flex items-center justify-between">
+                            <span class="text-xs font-semibold text-sky-300" id="formula-gas1-label">Nitrogen (N₂) Calculation:</span>
+                            <span class="text-[11px] font-mono text-slate-400" id="formula-m1-kg">M₁ = 0.02801 kg/mol</span>
+                        </div>
+                        <div class="font-mono text-xs sm:text-sm text-slate-200 overflow-x-auto whitespace-nowrap py-1">
+                            v<sub>rms,1</sub> = √( 3 × 8.314 × <span class="text-amber-400 font-semibold" id="calc-t1">300</span> / <span class="text-sky-400 font-semibold" id="calc-m1">0.02801</span> )
+                        </div>
+                        <div class="flex items-baseline justify-between pt-1 border-t border-sky-500/15">
+                            <span class="text-xs text-slate-400">Theoretical v<sub>rms</sub>:</span>
+                            <div class="font-mono text-xl sm:text-2xl font-bold text-emerald-400">
+                                <span id="result-vrms1">517</span> <span class="text-sm font-normal text-slate-300">m/s</span>
+                                <span class="text-xs font-normal text-slate-400 ml-1" id="result-kmh1">(1861 km/h)</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Live Substitution (Secondary Gas - when active) -->
+                    <div id="formula-gas2-box" class="hidden mt-3 space-y-1.5 bg-pink-950/20 border border-pink-500/25 rounded-xl p-3.5">
+                        <div class="flex items-center justify-between">
+                            <span class="text-xs font-semibold text-pink-300" id="formula-gas2-label">Hydrogen (H₂) Calculation:</span>
+                            <span class="font-mono text-lg font-bold text-pink-400">
+                                <span id="result-vrms2">1924</span> <span class="text-xs font-normal text-slate-300">m/s</span>
+                            </span>
+                        </div>
+                        <div class="text-xs text-slate-300 flex items-center justify-between pt-1 border-t border-pink-500/15">
+                            <span>Speed Ratio (<span class="font-mono">v<sub>rms,2</sub> / v<sub>rms,1</sub></span>):</span>
+                            <span class="font-mono font-bold text-amber-300" id="result-ratio">3.72× faster</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Characteristic Speeds Comparison Metrics -->
+                <div class="grid grid-cols-3 gap-2 mt-4 pt-3 border-t border-slate-800 text-center">
+                    <div class="p-2 rounded-xl bg-slate-950/70 border border-slate-800/80" title="Most probable speed: peak of the distribution curve, √(2RT/M)">
+                        <div class="text-[11px] text-slate-400">Most Probable (<span class="font-mono text-indigo-400">v<sub>p</sub></span>)</div>
+                        <div class="font-mono text-sm font-bold text-indigo-300 mt-0.5"><span id="stat-vp">422</span> m/s</div>
+                    </div>
+                    <div class="p-2 rounded-xl bg-slate-950/70 border border-slate-800/80" title="Average speed: arithmetic mean of molecular speeds, √(8RT/πM)">
+                        <div class="text-[11px] text-slate-400">Average (<span class="font-mono text-teal-400">v<sub>avg</sub></span>)</div>
+                        <div class="font-mono text-sm font-bold text-teal-300 mt-0.5"><span id="stat-vavg">476</span> m/s</div>
+                    </div>
+                    <div class="p-2 rounded-xl bg-emerald-950/30 border border-emerald-500/30" title="Root-Mean-Square speed: √(3RT/M)">
+                        <div class="text-[11px] text-emerald-300 font-medium">RMS (<span class="font-mono">v<sub>rms</sub></span>)</div>
+                        <div class="font-mono text-sm font-bold text-emerald-400 mt-0.5"><span id="stat-vrms">517</span> m/s</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Visual Panels: Left 2D Gas Chamber, Right Maxwell-Boltzmann Graph -->
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+            
+            <!-- Left Panel: 2D Gas Chamber Particle Simulation (5 columns) -->
+            <div class="lg:col-span-5 bg-slate-900/90 border border-slate-800 rounded-2xl p-4 flex flex-col shadow-xl">
+                <div class="flex items-center justify-between mb-3 gap-2">
+                    <div>
+                        <h3 class="text-sm font-semibold text-white">2D Molecular Gas Chamber</h3>
+                        <p class="text-xs text-slate-400">Elastic collisions & continuous energy exchange</p>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <div class="px-2.5 py-1 rounded-lg bg-slate-950 border border-slate-800 text-right" title="Live root-mean-square speed calculated directly from the 120 simulated particles">
+                            <div class="text-[10px] text-slate-400 uppercase tracking-wider">Chamber v<sub>rms</sub></div>
+                            <div class="font-mono text-xs font-bold text-emerald-400"><span id="live-chamber-vrms">517</span> m/s</div>
+                        </div>
+                        <button id="btn-pause" class="px-3 py-2 text-xs font-medium rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 transition">
+                            ⏸ Pause
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Canvas Container -->
+                <div class="relative w-full h-72 sm:h-80 bg-slate-950 rounded-xl border border-slate-800 overflow-hidden">
+                    <canvas id="chamber-canvas"></canvas>
+                    
+                    <!-- Speed Legend -->
+                    <div class="absolute bottom-2.5 left-2.5 right-2.5 flex items-center justify-between bg-slate-900/85 backdrop-blur-sm px-3 py-1.5 rounded-lg border border-slate-800 text-[11px]">
+                        <div id="speed-legend-items" class="flex items-center gap-3">
+                            <span class="flex items-center gap-1 text-slate-300"><span class="w-2.5 h-2.5 rounded-full bg-blue-500 inline-block"></span> Slow</span>
+                            <span class="flex items-center gap-1 text-slate-300"><span class="w-2.5 h-2.5 rounded-full bg-emerald-400 inline-block"></span> Medium</span>
+                            <span class="flex items-center gap-1 text-slate-300"><span class="w-2.5 h-2.5 rounded-full bg-rose-500 inline-block"></span> Fast</span>
+                        </div>
+                        <span id="chamber-mode-badge" class="font-mono text-sky-400 font-semibold">N₂ (120 particles)</span>
+                    </div>
+                </div>
+                <p class="text-[11px] text-slate-400 mt-2.5 leading-relaxed">
+                    Gas molecules continuously collide and exchange kinetic energy, creating a statistical spread of speeds rather than a single uniform velocity.
+                </p>
+            </div>
+
+            <!-- Right Panel: Maxwell-Boltzmann Speed Distribution Graph (7 columns) -->
+            <div class="lg:col-span-7 bg-slate-900/90 border border-slate-800 rounded-2xl p-4 flex flex-col shadow-xl">
+                <div class="flex flex-wrap items-center justify-between gap-2 mb-3">
+                    <div>
+                        <h3 class="text-sm font-semibold text-white">Maxwell–Boltzmann Speed Distribution, <span class="font-mono text-slate-300">f(v)</span></h3>
+                        <p class="text-xs text-slate-400">Probability density vs. molecular speed (<span class="font-mono">v</span> in m/s)</p>
+                    </div>
+                    <!-- Curve Markers Legend -->
+                    <div class="flex flex-wrap items-center gap-3 text-xs">
+                        <span class="flex items-center gap-1 text-indigo-300">
+                            <span class="w-3 h-0.5 bg-indigo-400 border-b border-dashed border-indigo-400"></span> v<sub>p</sub>
+                        </span>
+                        <span class="flex items-center gap-1 text-teal-300">
+                            <span class="w-3 h-0.5 bg-teal-400 border-b border-dashed border-teal-400"></span> v<sub>avg</sub>
+                        </span>
+                        <span class="flex items-center gap-1 text-emerald-400 font-semibold">
+                            <span class="w-3 h-1 bg-emerald-400 rounded"></span> v<sub>rms</sub>
+                        </span>
+                    </div>
+                </div>
+
+                <!-- Graph Canvas Container -->
+                <div class="relative w-full h-72 sm:h-80 bg-slate-950 rounded-xl border border-slate-800 overflow-hidden">
+                    <canvas id="graph-canvas"></canvas>
+                </div>
+                <p class="text-[11px] text-slate-400 mt-2.5 leading-relaxed">
+                    Because <span class="font-mono text-emerald-400">v<sub>rms</sub> = √(v̄²)</span> averages the <em>squares</em> of velocities, faster molecules in the high-speed tail carry greater weight, ensuring <span class="font-mono text-slate-200">v<sub>p</sub> &lt; v<sub>avg</sub> &lt; v<sub>rms</sub></span>.
+                </p>
+            </div>
+        </div>
+
+        <!-- Key Takeaways / Textbook Summary Cards -->
+        <section class="grid grid-cols-1 md:grid-cols-2 gap-6 pt-2">
+            <div class="bg-slate-900/70 border border-slate-800 rounded-2xl p-5 flex items-start gap-4">
+                <div class="w-10 h-10 rounded-xl bg-amber-500/15 border border-amber-500/30 text-amber-400 flex items-center justify-center shrink-0 font-mono font-bold text-sm">
+                    √T
+                </div>
+                <div>
+                    <h3 class="text-sm font-bold text-white flex items-center gap-2">
+                        Temperature Dependence: <span class="font-mono text-amber-400">v<sub>rms</sub> ∝ √T</span>
+                    </h3>
+                    <p class="text-xs sm:text-sm text-slate-300 mt-1.5 leading-relaxed">
+                        Molecular speed is directly proportional to the square root of the absolute temperature. Heating a gas sample to four times its absolute temperature (<span class="font-mono text-amber-300">4T</span>) doubles the characteristic speed (<span class="font-mono text-amber-300">2v<sub>rms</sub></span>) of its particles and broadens the distribution curve.
+                    </p>
+                </div>
+            </div>
+
+            <div class="bg-slate-900/70 border border-slate-800 rounded-2xl p-5 flex items-start gap-4">
+                <div class="w-10 h-10 rounded-xl bg-pink-500/15 border border-pink-500/30 text-pink-400 flex items-center justify-center shrink-0 font-mono font-bold text-xs">
+                    1/√M
+                </div>
+                <div>
+                    <h3 class="text-sm font-bold text-white flex items-center gap-2">
+                        Mass Dependence: <span class="font-mono text-pink-400">v<sub>rms</sub> ∝ √(1/M)</span>
+                    </h3>
+                    <p class="text-xs sm:text-sm text-slate-300 mt-1.5 leading-relaxed">
+                        At any shared temperature, all ideal gases have the same average translational kinetic energy (<span class="font-mono text-slate-200">½mv̄² = ³/₂k<sub>B</sub>T</span>). Consequently, molecular speed is inversely proportional to the square root of molar mass—lighter molecules move significantly faster on average than heavier ones.
+                    </p>
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <script>
+        /**
+         * Physical Constants & Simulation State
+         */
+        const R = 8.314462618; // Universal gas constant [J / (mol * K)]
+
+        const state = {
+            T: 300,              // Absolute temperature [K]
+            M1: 28.01,           // Primary gas molar mass [g/mol]
+            name1: 'Nitrogen (N₂)',
+            compareMode: false,  // Secondary gas overlay mode
+            M2: 2.02,            // Secondary gas molar mass [g/mol]
+            name2: 'Hydrogen (H₂)',
+            ghostCurve: null,    // Optional ghost curve { T, M, label } for 4x T comparison
+            showVp: true,
+            showVavg: true,
+            showVrms: true,
+            colorCodeSpeed: true,
+            paused: false
+        };
+
+        // DOM References
+        const sliderTemp = document.getElementById('slider-temp');
+        const displayTemp = document.getElementById('display-temp');
+        const displayTempC = document.getElementById('display-temp-c');
+
+        const sliderMass1 = document.getElementById('slider-mass1');
+        const displayMass1 = document.getElementById('display-mass1');
+        const displayGas1Name = document.getElementById('display-gas1-name');
+
+        const toggleCompare = document.getElementById('toggle-compare');
+        const compareControls = document.getElementById('compare-controls');
+        const sliderMass2 = document.getElementById('slider-mass2');
+        const displayMass2 = document.getElementById('display-mass2');
+        const displayGas2Name = document.getElementById('display-gas2-name');
+
+        // Formula & Stats Elements
+        const formulaGas1Label = document.getElementById('formula-gas1-label');
+        const formulaM1Kg = document.getElementById('formula-m1-kg');
+        const calcT1 = document.getElementById('calc-t1');
+        const calcM1 = document.getElementById('calc-m1');
+        const resultVrms1 = document.getElementById('result-vrms1');
+        const resultKmh1 = document.getElementById('result-kmh1');
+
+        const formulaGas2Box = document.getElementById('formula-gas2-box');
+        const formulaGas2Label = document.getElementById('formula-gas2-label');
+        const resultVrms2 = document.getElementById('result-vrms2');
+        const resultRatio = document.getElementById('result-ratio');
+
+        const statVp = document.getElementById('stat-vp');
+        const statVavg = document.getElementById('stat-vavg');
+        const statVrms = document.getElementById('stat-vrms');
+        const liveChamberVrms = document.getElementById('live-chamber-vrms');
+
+        const insightBanner = document.getElementById('insight-banner');
+        const insightTitle = document.getElementById('insight-title');
+        const insightText = document.getElementById('insight-text');
+
+        // Canvas Contexts
+        const chamberCanvas = document.getElementById('chamber-canvas');
+        const chamberCtx = chamberCanvas.getContext('2d');
+        const graphCanvas = document.getElementById('graph-canvas');
+        const graphCtx = graphCanvas.getContext('2d');
+
+        /**
+         * Calculate characteristic speeds: v_p, v_avg, v_rms
+         */
+        function calculateSpeeds(T, M_g_mol) {
+            const M = M_g_mol / 1000; // convert g/mol to kg/mol
+            const vp = Math.sqrt((2 * R * T) / M);
+            const vavg = Math.sqrt((8 * R * T) / (Math.PI * M));
+            const vrms = Math.sqrt((3 * R * T) / M);
+            return { vp, vavg, vrms, M_kg: M };
+        }
+
+        /**
+         * Maxwell-Boltzmann Probability Density Function f(v) [s/m]
+         */
+        function maxwellBoltzmannPDF(v, T, M_g_mol) {
+            const M = M_g_mol / 1000;
+            const factor = 4 * Math.PI * Math.pow(M / (2 * Math.PI * R * T), 1.5);
+            return factor * v * v * Math.exp((-M * v * v) / (2 * R * T));
+        }
+
+        /**
+         * Box-Muller transform for standard normal distribution
+         */
+        function randn() {
+            let u = 0, v = 0;
+            while (u === 0) u = Math.random();
+            while (v === 0) v = Math.random();
+            return Math.sqrt(-2.0 * Math.log(u)) * Math.cos(2.0 * Math.PI * v);
+        }
+
+        /**
+         * 2D Gas Chamber Particle Simulation
+         */
+        let particles = [];
+        const PARTICLE_COUNT = 120;
+
+        function initParticles() {
+            particles = [];
+            const width = chamberCanvas.width || 400;
+            const height = chamberCanvas.height || 300;
+            const speeds1 = calculateSpeeds(state.T, state.M1);
+            // Note: In 2D, <v^2> = 2 * sigma^2. To match 3D v_rms = sqrt(3RT/M), we scale 2D velocity components by sqrt(1.5 * RT / M)
+            const sigma1 = speeds1.vrms / Math.sqrt(2);
+
+            const speeds2 = calculateSpeeds(state.T, state.M2);
+            const sigma2 = speeds2.vrms / Math.sqrt(2);
+
+            for (let i = 0; i < PARTICLE_COUNT; i++) {
+                const type = (state.compareMode && i >= PARTICLE_COUNT / 2) ? 2 : 1;
+                const sigma = type === 1 ? sigma1 : sigma2;
+                const mass = type === 1 ? state.M1 : state.M2;
+                const radius = Math.max(3.2, Math.min(7.5, 3 + Math.pow(mass, 0.22)));
+
+                particles.push({
+                    x: radius + Math.random() * (width - 2 * radius),
+                    y: radius + Math.random() * (height - 2 * radius),
+                    vx: randn() * sigma,
+                    vy: randn() * sigma,
+                    radius: radius,
+                    mass: mass,
+                    type: type
+                });
+            }
+        }
+
+        /**
+         * Rescale particle velocities when T or M changes while preserving thermal equilibrium
+         */
+        function rescaleParticles(oldT, oldM1, oldM2) {
+            const width = chamberCanvas.width || 400;
+            const height = chamberCanvas.height || 300;
+
+            const oldSigma1 = Math.sqrt((1.5 * R * oldT) / (oldM1 / 1000));
+            const newSigma1 = Math.sqrt((1.5 * R * state.T) / (state.M1 / 1000));
+            const scale1 = newSigma1 / oldSigma1;
+
+            const oldSigma2 = Math.sqrt((1.5 * R * oldT) / (oldM2 / 1000));
+            const newSigma2 = Math.sqrt((1.5 * R * state.T) / (state.M2 / 1000));
+            const scale2 = newSigma2 / oldSigma2;
+
+            particles.forEach((p, i) => {
+                const targetType = (state.compareMode && i >= PARTICLE_COUNT / 2) ? 2 : 1;
+                if (p.type !== targetType) {
+                    p.type = targetType;
+                    const sigma = targetType === 1 ? newSigma1 : newSigma2;
+                    p.vx = randn() * sigma;
+                    p.vy = randn() * sigma;
+                } else {
+                    const scale = p.type === 1 ? scale1 : scale2;
+                    p.vx *= scale;
+                    p.vy *= scale;
+                }
+                p.mass = p.type === 1 ? state.M1 : state.M2;
+                p.radius = Math.max(3.2, Math.min(7.5, 3 + Math.pow(p.mass, 0.22)));
+                p.x = Math.max(p.radius, Math.min(width - p.radius, p.x));
+                p.y = Math.max(p.radius, Math.min(height - p.radius, p.y));
+            });
+        }
+
+        /**
+         * Determine particle color based on instantaneous speed
+         */
+        function getParticleColor(speed, vrms) {
+            if (!state.colorCodeSpeed) {
+                return '#38bdf8';
+            }
+            const ratio = speed / vrms;
+            if (ratio < 0.65) {
+                return '#3b82f6'; // Blue (slow)
+            } else if (ratio < 1.25) {
+                return '#10b981'; // Emerald (medium / around v_rms)
+            } else {
+                return '#f43f5e'; // Rose/Red (fast tail)
+            }
+        }
+
+        /**
+         * Step physics & render 2D Gas Chamber
+         */
+        let frameCounter = 0;
+        function updateAndDrawChamber() {
+            const width = chamberCanvas.width;
+            const height = chamberCanvas.height;
+            if (!width || !height) return;
+
+            chamberCtx.clearRect(0, 0, width, height);
+
+            // Subtle chamber background grid
+            chamberCtx.strokeStyle = 'rgba(30, 41, 59, 0.45)';
+            chamberCtx.lineWidth = 1;
+            const gridSize = 40;
+            for (let x = gridSize; x < width; x += gridSize) {
+                chamberCtx.beginPath();
+                chamberCtx.moveTo(x, 0);
+                chamberCtx.lineTo(x, height);
+                chamberCtx.stroke();
+            }
+            for (let y = gridSize; y < height; y += gridSize) {
+                chamberCtx.beginPath();
+                chamberCtx.moveTo(0, y);
+                chamberCtx.lineTo(width, y);
+                chamberCtx.stroke();
+            }
+
+            const visualSpeedFactor = 0.0042;
+            const vrms1 = calculateSpeeds(state.T, state.M1).vrms;
+
+            if (!state.paused) {
+                // Move particles & handle elastic wall collisions
+                for (let i = 0; i < particles.length; i++) {
+                    const p = particles[i];
+                    p.x += p.vx * visualSpeedFactor;
+                    p.y += p.vy * visualSpeedFactor;
+
+                    if (p.x - p.radius < 0) {
+                        p.x = p.radius;
+                        p.vx = Math.abs(p.vx);
+                    } else if (p.x + p.radius > width) {
+                        p.x = width - p.radius;
+                        p.vx = -Math.abs(p.vx);
+                    }
+
+                    if (p.y - p.radius < 0) {
+                        p.y = p.radius;
+                        p.vy = Math.abs(p.vy);
+                    } else if (p.y + p.radius > height) {
+                        p.y = height - p.radius;
+                        p.vy = -Math.abs(p.vy);
+                    }
+                }
+
+                // Elastic particle-particle collisions (momentum & kinetic energy conserved)
+                for (let i = 0; i < particles.length; i++) {
+                    for (let j = i + 1; j < particles.length; j++) {
+                        const p1 = particles[i];
+                        const p2 = particles[j];
+                        const dx = p2.x - p1.x;
+                        const dy = p2.y - p1.y;
+                        const dist = Math.hypot(dx, dy);
+                        const minDist = p1.radius + p2.radius;
+
+                        if (dist < minDist && dist > 0) {
+                            const overlap = (minDist - dist) / 2;
+                            const nx = dx / dist;
+                            const ny = dy / dist;
+                            p1.x -= nx * overlap;
+                            p1.y -= ny * overlap;
+                            p2.x += nx * overlap;
+                            p2.y += ny * overlap;
+
+                            const dvx = p2.vx - p1.vx;
+                            const dvy = p2.vy - p1.vy;
+                            const velAlongNormal = dvx * nx + dvy * ny;
+
+                            if (velAlongNormal < 0) {
+                                const m1 = p1.mass;
+                                const m2 = p2.mass;
+                                const impulse = (2 * velAlongNormal) / (m1 + m2);
+
+                                p1.vx += impulse * m2 * nx;
+                                p1.vy += impulse * m2 * ny;
+                                p2.vx -= impulse * m1 * nx;
+                                p2.vy -= impulse * m1 * ny;
+                            }
+                        }
+                    }
+                }
+            }
+
+            // Compute live instantaneous v_rms of primary gas particles
+            let sumSq1 = 0;
+            let count1 = 0;
+
+            for (let i = 0; i < particles.length; i++) {
+                const p = particles[i];
+                const speedSq = p.vx * p.vx + p.vy * p.vy;
+                const speed = Math.sqrt(speedSq);
+
+                if (p.type === 1) {
+                    sumSq1 += speedSq;
+                    count1++;
+                }
+
+                let color;
+                if (state.compareMode) {
+                    color = p.type === 1 ? '#38bdf8' : '#f472b6';
+                } else {
+                    color = getParticleColor(speed, vrms1);
+                }
+
+                // Velocity vector trail
+                const vecLen = Math.min(18, speed * 0.008);
+                if (speed > 1) {
+                    chamberCtx.beginPath();
+                    chamberCtx.moveTo(p.x, p.y);
+                    chamberCtx.lineTo(p.x + (p.vx / speed) * (p.radius + vecLen), p.y + (p.vy / speed) * (p.radius + vecLen));
+                    chamberCtx.strokeStyle = color;
+                    chamberCtx.globalAlpha = 0.45;
+                    chamberCtx.lineWidth = 1.5;
+                    chamberCtx.stroke();
+                    chamberCtx.globalAlpha = 1.0;
+                }
+
+                // Particle circle
+                chamberCtx.beginPath();
+                chamberCtx.arc(p.x, p.y, p.radius, 0, Math.PI * 2);
+                chamberCtx.fillStyle = color;
+                chamberCtx.fill();
+
+                // Specular highlight
+                chamberCtx.beginPath();
+                chamberCtx.arc(p.x - p.radius * 0.3, p.y - p.radius * 0.3, p.radius * 0.35, 0, Math.PI * 2);
+                chamberCtx.fillStyle = 'rgba(255, 255, 255, 0.45)';
+                chamberCtx.fill();
+            }
+
+            // Update live chamber v_rms readout every 10 frames for smooth legibility
+            frameCounter++;
+            if (frameCounter % 10 === 0 && count1 > 0) {
+                const instVrms = Math.sqrt(sumSq1 / count1);
+                liveChamberVrms.textContent = Math.round(instVrms);
+            }
+        }
+
+        /**
+         * Render Maxwell-Boltzmann Distribution Curve on HTML5 Canvas
+         */
+        function drawGraph() {
+            const width = graphCanvas.width;
+            const height = graphCanvas.height;
+            if (!width || !height) return;
+
+            graphCtx.clearRect(0, 0, width, height);
+
+            const padLeft = 52;
+            const padRight = 24;
+            const padTop = 28;
+            const padBottom = 42;
+            const plotW = width - padLeft - padRight;
+            const plotH = height - padTop - padBottom;
+
+            const s1 = calculateSpeeds(state.T, state.M1);
+            const s2 = state.compareMode ? calculateSpeeds(state.T, state.M2) : null;
+            const sGhost = state.ghostCurve ? calculateSpeeds(state.ghostCurve.T, state.ghostCurve.M) : null;
+
+            // Dynamic X-axis range
+            let maxRefVrms = s1.vrms;
+            if (s2) maxRefVrms = Math.max(maxRefVrms, s2.vrms);
+            if (sGhost) maxRefVrms = Math.max(maxRefVrms, sGhost.vrms);
+
+            let maxV = Math.max(1500, Math.ceil((maxRefVrms * 2.35) / 500) * 500);
+            if (maxV > 5000) maxV = 5000;
+
+            // Peak Y value
+            const peak1 = maxwellBoltzmannPDF(s1.vp, state.T, state.M1);
+            const peak2 = s2 ? maxwellBoltzmannPDF(s2.vp, state.T, state.M2) : 0;
+            const peakGhost = sGhost ? maxwellBoltzmannPDF(sGhost.vp, state.ghostCurve.T, state.ghostCurve.M) : 0;
+            const maxPDF = Math.max(peak1, peak2, peakGhost) * 1.18;
+
+            const toX = (v) => padLeft + (v / maxV) * plotW;
+            const toY = (pdf) => padTop + plotH - (pdf / maxPDF) * plotH;
+
+            // Gridlines & Axes
+            graphCtx.strokeStyle = '#1e293b';
+            graphCtx.lineWidth = 1;
+            graphCtx.font = '11px "JetBrains Mono", monospace';
+            graphCtx.fillStyle = '#94a3b8';
+            graphCtx.textAlign = 'center';
+
+            const stepV = maxV <= 2000 ? 250 : 500;
+            for (let v = 0; v <= maxV; v += stepV) {
+                const x = toX(v);
+                graphCtx.beginPath();
+                graphCtx.moveTo(x, padTop);
+                graphCtx.lineTo(x, padTop + plotH);
+                graphCtx.stroke();
+
+                graphCtx.fillText(v.toString(), x, padTop + plotH + 18);
+            }
+
+            for (let i = 1; i <= 4; i++) {
+                const y = padTop + plotH - (i / 4) * plotH;
+                graphCtx.beginPath();
+                graphCtx.moveTo(padLeft, y);
+                graphCtx.lineTo(padLeft + plotW, y);
+                graphCtx.stroke();
+            }
+
+            // Main X and Y Axes
+            graphCtx.strokeStyle = '#475569';
+            graphCtx.lineWidth = 1.5;
+            graphCtx.beginPath();
+            graphCtx.moveTo(padLeft, padTop);
+            graphCtx.lineTo(padLeft, padTop + plotH);
+            graphCtx.lineTo(padLeft + plotW, padTop + plotH);
+            graphCtx.stroke();
+
+            // Axis Labels
+            graphCtx.fillStyle = '#cbd5e1';
+            graphCtx.font = '12px "Inter", sans-serif';
+            graphCtx.textAlign = 'center';
+            graphCtx.fillText('Molecular Speed, v (m/s)', padLeft + plotW / 2, height - 8);
+
+            graphCtx.save();
+            graphCtx.translate(16, padTop + plotH / 2);
+            graphCtx.rotate(-Math.PI / 2);
+            graphCtx.fillText('Probability Density, f(v)', 0, 0);
+            graphCtx.restore();
+
+            // Helper to plot a distribution curve
+            function plotDistribution(T, M, strokeColor, fillGradientStart, fillGradientEnd, isGhost = false) {
+                const steps = 220;
+                if (!isGhost) {
+                    const grad = graphCtx.createLinearGradient(0, padTop, 0, padTop + plotH);
+                    grad.addColorStop(0, fillGradientStart);
+                    grad.addColorStop(1, fillGradientEnd);
+
+                    graphCtx.beginPath();
+                    graphCtx.moveTo(toX(0), toY(0));
+                    for (let i = 1; i <= steps; i++) {
+                        const v = (i / steps) * maxV;
+                        const pdf = maxwellBoltzmannPDF(v, T, M);
+                        graphCtx.lineTo(toX(v), toY(pdf));
+                    }
+                    graphCtx.lineTo(toX(maxV), toY(0));
+                    graphCtx.closePath();
+                    graphCtx.fillStyle = grad;
+                    graphCtx.fill();
+                }
+
+                graphCtx.save();
+                graphCtx.beginPath();
+                if (isGhost) {
+                    graphCtx.setLineDash([6, 5]);
+                }
+                for (let i = 0; i <= steps; i++) {
+                    const v = (i / steps) * maxV;
+                    const pdf = maxwellBoltzmannPDF(v, T, M);
+                    if (i === 0) graphCtx.moveTo(toX(v), toY(pdf));
+                    else graphCtx.lineTo(toX(v), toY(pdf));
+                }
+                graphCtx.strokeStyle = strokeColor;
+                graphCtx.lineWidth = isGhost ? 2 : 2.8;
+                graphCtx.stroke();
+                graphCtx.restore();
+            }
+
+            // Ghost Curve (e.g., initial 300 K curve when testing 4x T)
+            if (state.ghostCurve) {
+                plotDistribution(state.ghostCurve.T, state.ghostCurve.M, 'rgba(148, 163, 184, 0.7)', '', '', true);
+                if (state.showVrms && sGhost) {
+                    drawSpeedMarker(sGhost.vrms, state.ghostCurve.T, state.ghostCurve.M, '#94a3b8', `${state.ghostCurve.label} (${Math.round(sGhost.vrms)})`, true, 0);
+                }
+            }
+
+            // Primary Gas Curve
+            plotDistribution(state.T, state.M1, '#38bdf8', 'rgba(56, 189, 248, 0.28)', 'rgba(56, 189, 248, 0.01)');
+
+            // Secondary Gas Curve
+            if (state.compareMode) {
+                plotDistribution(state.T, state.M2, '#f472b6', 'rgba(244, 114, 182, 0.24)', 'rgba(244, 114, 182, 0.01)');
+            }
+
+            // Helper for vertical speed markers
+            function drawSpeedMarker(v, T, M, color, label, isDashed, yOffsetLabel = 0) {
+                if (v > maxV) return;
+                const x = toX(v);
+                const pdf = maxwellBoltzmannPDF(v, T, M);
+                const y = toY(pdf);
+
+                graphCtx.save();
+                graphCtx.beginPath();
+                if (isDashed) graphCtx.setLineDash([4, 4]);
+                graphCtx.moveTo(x, padTop + plotH);
+                graphCtx.lineTo(x, y);
+                graphCtx.strokeStyle = color;
+                graphCtx.lineWidth = isDashed ? 1.5 : 2.5;
+                graphCtx.stroke();
+                graphCtx.restore();
+
+                graphCtx.beginPath();
+                graphCtx.arc(x, y, isDashed ? 3.5 : 5, 0, Math.PI * 2);
+                graphCtx.fillStyle = color;
+                graphCtx.fill();
+                graphCtx.strokeStyle = '#0f172a';
+                graphCtx.lineWidth = 1.5;
+                graphCtx.stroke();
+
+                graphCtx.font = isDashed ? '11px "JetBrains Mono", monospace' : 'bold 11px "JetBrains Mono", monospace';
+                graphCtx.fillStyle = color;
+                graphCtx.textAlign = 'center';
+                graphCtx.fillText(label, x, Math.max(padTop + 12, y - 8 - yOffsetLabel));
+            }
+
+            // Draw enabled markers for Primary Gas
+            if (state.showVp) {
+                drawSpeedMarker(s1.vp, state.T, state.M1, '#818cf8', 'v_p', true, 0);
+            }
+            if (state.showVavg) {
+                drawSpeedMarker(s1.vavg, state.T, state.M1, '#2dd4bf', 'v_avg', true, 13);
+            }
+            if (state.showVrms) {
+                drawSpeedMarker(s1.vrms, state.T, state.M1, '#34d399', `v_rms=${Math.round(s1.vrms)}`, false, 0);
+            }
+
+            // Draw v_rms marker for Secondary Gas
+            if (state.compareMode && s2 && state.showVrms) {
+                drawSpeedMarker(s2.vrms, state.T, state.M2, '#f472b6', `v_rms2=${Math.round(s2.vrms)}`, false, 14);
+            }
+        }
+
+        /**
+         * Update UI values and live calculations
+         */
+        function updateUI() {
+            displayTemp.textContent = `${state.T} K`;
+            const celsius = (state.T - 273.15).toFixed(1);
+            displayTempC.textContent = `(${celsius} °C)`;
+
+            displayMass1.textContent = `${state.M1.toFixed(2)} g/mol`;
+            displayGas1Name.textContent = state.name1;
+
+            const s1 = calculateSpeeds(state.T, state.M1);
+            formulaGas1Label.textContent = `${state.name1} Calculation:`;
+            formulaM1Kg.textContent = `M₁ = ${s1.M_kg.toFixed(5)} kg/mol`;
+            calcT1.textContent = state.T;
+            calcM1.textContent = s1.M_kg.toFixed(5);
+            resultVrms1.textContent = Math.round(s1.vrms);
+            resultKmh1.textContent = `(${Math.round(s1.vrms * 3.6)} km/h)`;
+
+            statVp.textContent = Math.round(s1.vp);
+            statVavg.textContent = Math.round(s1.vavg);
+            statVrms.textContent = Math.round(s1.vrms);
+
+            const legendItems = document.getElementById('speed-legend-items');
+            if (state.compareMode) {
+                compareControls.classList.remove('hidden');
+                formulaGas2Box.classList.remove('hidden');
+                displayMass2.textContent = `${state.M2.toFixed(2)} g/mol`;
+                displayGas2Name.textContent = state.name2;
+
+                const s2 = calculateSpeeds(state.T, state.M2);
+                formulaGas2Label.textContent = `${state.name2} Calculation:`;
+                resultVrms2.textContent = Math.round(s2.vrms);
+
+                const ratio = s2.vrms / s1.vrms;
+                if (ratio >= 1) {
+                    resultRatio.textContent = `${ratio.toFixed(2)}× faster`;
+                } else {
+                    resultRatio.textContent = `${(1 / ratio).toFixed(2)}× slower`;
+                }
+
+                legendItems.innerHTML = `
+                    <span class="flex items-center gap-1 text-sky-300"><span class="w-2.5 h-2.5 rounded-full bg-sky-400 inline-block"></span> ${state.name1.split(' ')[0]}</span>
+                    <span class="flex items-center gap-1 text-pink-300"><span class="w-2.5 h-2.5 rounded-full bg-pink-400 inline-block"></span> ${state.name2.split(' ')[0]}</span>
+                `;
+                document.getElementById('chamber-mode-badge').textContent = `60 + 60 particles`;
+            } else {
+                compareControls.classList.add('hidden');
+                formulaGas2Box.classList.add('hidden');
+                legendItems.innerHTML = state.colorCodeSpeed ? `
+                    <span class="flex items-center gap-1 text-slate-300"><span class="w-2.5 h-2.5 rounded-full bg-blue-500 inline-block"></span> Slow</span>
+                    <span class="flex items-center gap-1 text-slate-300"><span class="w-2.5 h-2.5 rounded-full bg-emerald-400 inline-block"></span> Medium</span>
+                    <span class="flex items-center gap-1 text-slate-300"><span class="w-2.5 h-2.5 rounded-full bg-rose-500 inline-block"></span> Fast</span>
+                ` : `<span class="text-slate-400">Uniform coloring</span>`;
+                document.getElementById('chamber-mode-badge').textContent = `${state.name1} (${PARTICLE_COUNT} particles)`;
+            }
+
+            drawGraph();
+        }
+
+        function showInsight(title, text) {
+            insightTitle.textContent = title;
+            insightText.innerHTML = text;
+            insightBanner.classList.remove('hidden');
+        }
+
+        document.getElementById('close-insight').addEventListener('click', () => {
+            insightBanner.classList.add('hidden');
+        });
+
+        // Event Listeners: Temperature
+        sliderTemp.addEventListener('input', (e) => {
+            const oldT = state.T;
+            state.T = parseFloat(e.target.value);
+            state.ghostCurve = null;
+            rescaleParticles(oldT, state.M1, state.M2);
+            updateUI();
+        });
+
+        document.querySelectorAll('.temp-preset').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const oldT = state.T;
+                state.T = parseFloat(btn.dataset.temp);
+                sliderTemp.value = state.T;
+                state.ghostCurve = null;
+                rescaleParticles(oldT, state.M1, state.M2);
+                updateUI();
+            });
+        });
+
+        // Event Listeners: Primary Gas Molar Mass
+        sliderMass1.addEventListener('input', (e) => {
+            const oldM1 = state.M1;
+            state.M1 = parseFloat(e.target.value);
+            state.name1 = 'Custom Gas';
+            state.ghostCurve = null;
+            rescaleParticles(state.T, oldM1, state.M2);
+            updateUI();
+        });
+
+        document.querySelectorAll('.gas1-preset').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const oldM1 = state.M1;
+                state.M1 = parseFloat(btn.dataset.mass);
+                state.name1 = btn.dataset.name;
+                sliderMass1.value = state.M1;
+                state.ghostCurve = null;
+                rescaleParticles(state.T, oldM1, state.M2);
+                updateUI();
+            });
+        });
+
+        // Event Listeners: Secondary Gas Comparison
+        toggleCompare.addEventListener('change', (e) => {
+            state.compareMode = e.target.checked;
+            state.ghostCurve = null;
+            rescaleParticles(state.T, state.M1, state.M2);
+            updateUI();
+        });
+
+        sliderMass2.addEventListener('input', (e) => {
+            const oldM2 = state.M2;
+            state.M2 = parseFloat(e.target.value);
+            state.name2 = 'Custom Gas 2';
+            rescaleParticles(state.T, state.M1, oldM2);
+            updateUI();
+        });
+
+        document.querySelectorAll('.gas2-preset').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const oldM2 = state.M2;
+                state.M2 = parseFloat(btn.dataset.mass);
+                state.name2 = btn.dataset.name;
+                sliderMass2.value = state.M2;
+                rescaleParticles(state.T, state.M1, oldM2);
+                updateUI();
+            });
+        });
+
+        // Checkboxes for graph markers & chamber color coding
+        document.getElementById('chk-vp').addEventListener('change', (e) => {
+            state.showVp = e.target.checked;
+            drawGraph();
+        });
+        document.getElementById('chk-vavg').addEventListener('change', (e) => {
+            state.showVavg = e.target.checked;
+            drawGraph();
+        });
+        document.getElementById('chk-vrms').addEventListener('change', (e) => {
+            state.showVrms = e.target.checked;
+            drawGraph();
+        });
+        document.getElementById('chk-colorcode').addEventListener('change', (e) => {
+            state.colorCodeSpeed = e.target.checked;
+            updateUI();
+        });
+
+        // Quick Experiment 1: 4x Temperature (T -> 4T)
+        document.getElementById('btn-trend-4t').addEventListener('click', () => {
+            const oldT = state.T;
+            const oldM1 = state.M1;
+            state.compareMode = false;
+            toggleCompare.checked = false;
+            state.M1 = 28.01;
+            state.name1 = 'Nitrogen (N₂)';
+            sliderMass1.value = state.M1;
+
+            if (state.T !== 1200) {
+                state.ghostCurve = { T: 300, M: 28.01, label: '300 K' };
+                state.T = 1200;
+                sliderTemp.value = 1200;
+                rescaleParticles(oldT, oldM1, state.M2);
+                updateUI();
+                showInsight(
+                    'Temperature Dependence: v_rms ∝ √T (300 K → 1200 K)',
+                    'Heating Nitrogen from <strong>300 K</strong> to four times its absolute temperature (<strong>1200 K</strong>) multiplies <span class="font-mono text-amber-300">v<sub>rms</sub></span> by <span class="font-mono text-amber-300">√4 = 2</span>—doubling the characteristic speed from <strong>517 m/s to 1034 m/s</strong>! Notice the dashed ghost curve showing the original 300 K distribution.'
+                );
+            } else {
+                state.ghostCurve = null;
+                state.T = 300;
+                sliderTemp.value = 300;
+                rescaleParticles(oldT, oldM1, state.M2);
+                updateUI();
+                showInsight(
+                    'Restored Baseline: T = 300 K (v_rms = 517 m/s)',
+                    'Click <strong>4× Temperature (T → 4T)</strong> again to see how quadrupling absolute temperature doubles molecular speed.'
+                );
+            }
+        });
+
+        // Quick Experiment 2: Compare H2 vs O2 at 300 K
+        document.getElementById('btn-trend-mass').addEventListener('click', () => {
+            const oldT = state.T;
+            const oldM1 = state.M1;
+            const oldM2 = state.M2;
+
+            state.ghostCurve = null;
+            state.T = 300;
+            sliderTemp.value = 300;
+            state.M1 = 32.00;
+            state.name1 = 'Oxygen (O₂)';
+            sliderMass1.value = 32.00;
+
+            state.compareMode = true;
+            toggleCompare.checked = true;
+            state.M2 = 2.02;
+            state.name2 = 'Hydrogen (H₂)';
+            sliderMass2.value = 2.02;
+
+            rescaleParticles(oldT, oldM1, oldM2);
+            updateUI();
+            showInsight(
+                'Mass Dependence at Shared Temperature (300 K): v_rms ∝ √(1/M)',
+                'Oxygen (<strong>M₁ = 32.00 g/mol</strong>) is nearly <strong>16 times heavier</strong> than Hydrogen (<strong>M₂ = 2.02 g/mol</strong>). At the same temperature (300 K), lighter Hydrogen molecules move <span class="font-mono text-pink-300">√(32 / 2.02) ≈ 3.98× faster</span> on average (<strong>1924 m/s</strong> vs. <strong>483 m/s</strong>).'
+            );
+        });
+
+        // Reset Button
+        document.getElementById('btn-reset').addEventListener('click', () => {
+            const oldT = state.T;
+            const oldM1 = state.M1;
+            const oldM2 = state.M2;
+
+            state.T = 300;
+            sliderTemp.value = 300;
+            state.M1 = 28.01;
+            state.name1 = 'Nitrogen (N₂)';
+            sliderMass1.value = 28.01;
+            state.compareMode = false;
+            toggleCompare.checked = false;
+            state.ghostCurve = null;
+            state.paused = false;
+            btnPause.textContent = '⏸ Pause';
+            btnPause.classList.remove('bg-amber-500/20', 'text-amber-300');
+            insightBanner.classList.add('hidden');
+
+            rescaleParticles(oldT, oldM1, oldM2);
+            updateUI();
+        });
+
+        // Pause Button
+        const btnPause = document.getElementById('btn-pause');
+        btnPause.addEventListener('click', () => {
+            state.paused = !state.paused;
+            btnPause.textContent = state.paused ? '▶ Resume' : '⏸ Pause';
+            btnPause.classList.toggle('bg-amber-500/20', state.paused);
+            btnPause.classList.toggle('text-amber-300', state.paused);
+        });
+
+        // Responsive Canvas Sizing
+        function resizeCanvases() {
+            const chamberRect = chamberCanvas.parentElement.getBoundingClientRect();
+            chamberCanvas.width = chamberRect.width;
+            chamberCanvas.height = chamberRect.height;
+
+            const graphRect = graphCanvas.parentElement.getBoundingClientRect();
+            graphCanvas.width = graphRect.width;
+            graphCanvas.height = graphRect.height;
+
+            drawGraph();
+        }
+
+        function animate() {
+            updateAndDrawChamber();
+            requestAnimationFrame(animate);
+        }
+
+        window.addEventListener('load', () => {
+            resizeCanvases();
+            initParticles();
+            updateUI();
+            animate();
+        });
+
+        window.addEventListener('resize', () => {
+            resizeCanvases();
+        });
+    </script>
+</body>
+</html>
